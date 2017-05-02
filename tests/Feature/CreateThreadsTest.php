@@ -62,19 +62,46 @@ class CreateThreadsTest extends TestCase
 	}
 
 	/** @test */
-	function a_thread_can_be_deleted()
+	function unauthorized_users_may_not_delete_threads()
+	{
+		$this->withExceptionHandling();
+		$thread = create('App\Thread');
+		$this->delete($thread->path())
+			->assertRedirect('/login');
+		$this->signIn();
+		$this->delete($thread->path())
+			->assertStatus(403);
+
+	}
+	/** @test */
+	function authorized_users_can_delete_threads()
 	{
 		$this->signIn();
-		$thread = create('App\Thread');
-		$this->json('DELETE', $thread->path());
+
+		$thread = create('App\Thread', ['user_id' => auth()->id()]);
+		$reply = create('App\Reply', ['thread_id' => $thread->id]);
+
+		$response = $this->json('DELETE', $thread->path());
+
+		$response->assertStatus(204);
+		
 		$this->assertDatabaseMissing('threads', ['id' => $thread->id]);
+		$this->assertDatabaseMissing('replies', ['id' => $reply->id]);
+		$this->assertDatabaseMissing('activities', [
+			'subject_id' => $thread->id, 
+			'subject_type' => get_class($thread)
+		]);
+		$this->assertDatabaseMissing('activities', [
+			'subject_id' => $reply->id, 
+			'subject_type' => get_class($reply)
+		]);
 	}
 
-	// public function publishThread($overrides = [])
-	// {
-	// 	$this->withExceptionHandling()->signIn();
-	// 	$thread = make('App\Thread', $overrides);
+	public function publishThread($overrides = [])
+	{
+		$this->withExceptionHandling()->signIn();
+		$thread = make('App\Thread', $overrides);
 
-	// 	return $this->post('/threads', $thread->toArray());
-	// }
+		return $this->post('/threads', $thread->toArray());
+	}
 }

@@ -2,10 +2,14 @@
 
 namespace App;
 
+use App\Filters\ThreadFilters;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Thread extends Model
 {
+    use RecordsActivity;
+
 	protected $guarded = [];
 
     protected $with = ['creator', 'channel'];
@@ -17,16 +21,14 @@ class Thread extends Model
         static::addGlobalScope('replyCount', function($builder) {
             $builder->withCount('replies');
         });
+        static::deleting(function($thread) {
+            $thread->replies->each->delete();
+        });
     }
 
-    public function path() 
+    public function path()
     {
         return "/threads/{$this->channel->slug}/{$this->id}";
-    }
-
-    public function replies()
-    {
-    	return $this->hasMany(Reply::class);
     }
 
     public function creator()
@@ -34,17 +36,22 @@ class Thread extends Model
     	return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function addReply($reply)
-    {
-    	$this->replies()->create($reply);
-    }
-
     public function channel()
     {
         return $this->belongsTo(Channel::class);
     }
 
-    public function scopeFilter($query, $filters)
+    public function replies()
+    {
+        return $this->hasMany(Reply::class);
+    }
+
+    public function addReply($reply)
+    {
+        $this->replies()->create($reply);
+    }
+
+    public function scopeFilter($query, Threadfilters $filters)
     {
         return $filters->apply($query);
     }
