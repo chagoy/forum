@@ -15,8 +15,10 @@
 
     <!-- Scripts -->
     <script>
-        window.Laravel = {!! json_encode([
+        window.App = {!! json_encode([
             'csrfToken' => csrf_token(),
+            'signedIn' => Auth::check(),
+            'user' => Auth::user()
         ]) !!};
     </script>
 
@@ -24,6 +26,8 @@
         body { padding-bottom: 100px; }
         .level { display: flex; align-items: center ; }
         .flex { flex: 1; }
+        .mr-1 { margin-right: 1em; }
+        [v-cloak] { display: none; }
     </style>
 </head>
 <body style="padding-bottom: 100px">
@@ -32,6 +36,8 @@
         
 
         @yield('content')
+
+        <flash message="{{ session('flash') }}"></flash>
     </div>
 
     <!-- Scripts -->
