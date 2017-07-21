@@ -2,7 +2,7 @@
 
 namespace App;
 
-use App\Notifications\ThreadWasUpdated;
+use App\Events\ThreadhasNewReply;
 use App\Filters\ThreadFilters;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -50,12 +50,9 @@ class Thread extends Model
     {
         $reply = $this->replies()->create($reply);
 
-        //prepare notification
-        $this->subscriptions
-            ->where('user_id', '!=', $reply->user_id)
-            ->each->notify($reply);
+        $this->notifySubscribers($reply);
 
-            return $reply;
+        return $reply;
     }
 
     public function scopeFilter($query, Threadfilters $filters)
@@ -82,6 +79,22 @@ class Thread extends Model
     public function subscriptions()
     {
         return $this->hasMany(ThreadSubscription::class);
+    }
+
+    public function hasUpdatesFor($user)
+    {
+        //look in the cache for the proper key
+        $key = $user->visitedThreadCacheKey($this);
+        //compare that carbon instance with last updated at time of thread
+        //returns a boolean now to determine if bold or not on the view
+        return $this->updated_at > cache($key);
+    }
+
+    public function notifySubscribers($reply)
+    {
+        $this->subscriptions
+            ->where('user_id', '!=', $reply->user_id)
+            ->each->notify($reply);
     }
 
     public function getIsSubscribedToAttribute()
