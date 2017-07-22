@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Inspections\Spam;
+
+use App\Http\Forms\CreatePostForm;
 use App\Thread;
 use App\Reply;
 use Illuminate\Http\Request;
@@ -12,32 +13,33 @@ class RepliesController extends Controller
 	{
 		$this->middleware('auth', ['except' => 'index']);
 	}
+
     public function index($channelId, Thread $thread)
     {
         return $thread->replies()->paginate(20);
     }
-    public function store($channelId, Thread $thread)
+    
+    public function store($channelId, Thread $thread, CreatePostForm $form)
     {
-        $this->validateReply();
-
-    	$reply = $thread->addReply([
-    		'body' => request('body'), 
-    		'user_id' => auth()->id()
-    	]);
-
-        if (request()->expectsJson()) {
-            return $reply->load('owner');
-        }
-    	return back()->with('flash', 'Reply added');
+        return $thread->addReply([
+                'body' => request('body'),
+                'user_id' => auth()->id()
+            ])->load('owner');
     }
 
     public function update(Reply $reply)
     {
-        $this->authorize('update', $reply);
+        try {
+            $this->authorize('update', $reply);
 
-        $this->validateReply();
+            $this->validate(request(), ['body' => 'required|spamfree']);
+            
+            $reply->update(request(['body']));
+        } catch (\Exception $e) {
+            return response(
+                'Sorry, your reply could not be saved', 422);
+        }
         
-        $reply->update(request(['body']));
     }
 
     public function destroy(Reply $reply)
@@ -51,11 +53,5 @@ class RepliesController extends Controller
         }
 
         return back();
-    }
-
-    protected function validateReply()
-    {
-        $this->validate(request(), ['body' => 'required']);
-        resolve(Spam::class)->detect(request('body'));
     }
 }
