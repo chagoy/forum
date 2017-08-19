@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Forms\CreatePostForm;
 use App\Thread;
 use App\Reply;
+
+use App\Notifications\YouWereMentioned;
 use Illuminate\Http\Request;
 
 class RepliesController extends Controller
@@ -29,16 +31,12 @@ class RepliesController extends Controller
 
     public function update(Reply $reply)
     {
-        try {
-            $this->authorize('update', $reply);
+        $this->authorize('update', $reply);
 
-            $this->validate(request(), ['body' => 'required|spamfree']);
+        $this->validate(request(), ['body' => 'required|spamfree']);
             
-            $reply->update(request(['body']));
-        } catch (\Exception $e) {
-            return response(
-                'Sorry, your reply could not be saved', 422);
-        }
+        $reply->update(request(['body']));
+
         
     }
 

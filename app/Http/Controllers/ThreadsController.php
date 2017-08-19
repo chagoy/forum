@@ -77,12 +77,6 @@ class ThreadsController extends Controller
             auth()->user()->read($thread);
         }
 
-        //record that the user visited this page
-        //record a timestamp
-        // $key = sprintf("users.%s.visits.%s", auth()->id(), $thread->id);
-        
-        // cache()->forever($key, Carbon::now());
-
         return view('threads.show', compact('thread'));
     }
 
@@ -133,6 +127,6 @@ class ThreadsController extends Controller
             $threads->where('channel_id', $channel->id);
         }
 
-        return $threads->get();
+        return $threads->paginate(25);
     }
 }

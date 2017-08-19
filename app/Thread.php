@@ -2,7 +2,7 @@
 
 namespace App;
 
-use App\Events\ThreadhasNewReply;
+use App\Events\ThreadHasNewReply;
 use App\Filters\ThreadFilters;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -50,7 +50,7 @@ class Thread extends Model
     {
         $reply = $this->replies()->create($reply);
 
-        $this->notifySubscribers($reply);
+        event (new ThreadHasNewReply($reply));
 
         return $reply;
     }
@@ -88,13 +88,6 @@ class Thread extends Model
         //compare that carbon instance with last updated at time of thread
         //returns a boolean now to determine if bold or not on the view
         return $this->updated_at > cache($key);
-    }
-
-    public function notifySubscribers($reply)
-    {
-        $this->subscriptions
-            ->where('user_id', '!=', $reply->user_id)
-            ->each->notify($reply);
     }
 
     public function getIsSubscribedToAttribute()
